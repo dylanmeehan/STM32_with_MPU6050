@@ -13,12 +13,25 @@ Mpu6050::Mpu6050(){
 }
 
 void Mpu6050::Init(){
+  HAL_StatusTypeDef transmit_status;
 
+
+  // turn on device
   uint8_t pwr_mgmt_1_register = 0x6B;
   uint8_t pwr_mgmt_1_data = 0x01; // 1 to use gryoscope mems and clock
   uint8_t data[2] = {pwr_mgmt_1_register, pwr_mgmt_1_data};
-  HAL_StatusTypeDef transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+  transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
                                          data, 2, HAL_MAX_DELAY);
+
+  // set accel config
+  uint8_t accel_config_register = 0x1C;
+  uint8_t accel_config = 0x00;
+  if (Mpu6050::range_Gs == 2){
+	accel_config |= (0x00 << 3); // set full scale range to 2g
+  }
+  uint8_t accel_data[2] = {accel_config_register, accel_config};
+  transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+                                         accel_data, 2, HAL_MAX_DELAY);
 }
 
 void Mpu6050::Read(){
@@ -36,8 +49,13 @@ void Mpu6050::Read(){
   int16_t raw_y_accel = raw_accel_data[2] << 8 | raw_accel_data[3];
   int16_t raw_z_accel = raw_accel_data[4] << 8 | raw_accel_data[5];
 
+  float scale_factor = 0x7FFF / Mpu6050::range_Gs;
+  float x_accel = raw_x_accel / scale_factor;
+  float y_accel = raw_y_accel / scale_factor;
+  float z_accel = raw_z_accel / scale_factor;
+
   char buffer[50];
-  int len = sprintf(buffer, "x_accel %d,  y_accel %d, z_accel %d\r\n", raw_x_accel, raw_y_accel, raw_z_accel);
+  int len = sprintf(buffer, "x_accel %d,  y_accel %d, z_accel %d\r\n", x_accel, y_accel, z_accel);
   HAL_UART_Transmit(&huart2, (uint8_t*)buffer, len,  HAL_MAX_DELAY);
 
    

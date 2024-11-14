@@ -10,5 +10,6 @@ class Mpu6050{
 
  private:
   static const uint8_t address = (0x68 << 1);
+  static const int16_t range_Gs = 2;
 
 };
