@@ -3,10 +3,10 @@
 
 extern "C" {
 
-Mpu6050 mpu6050;
+static Mpu6050 mpu6050;
 
 void Main_Wrapper_Init(){
-  mpu6050.Init();
+  mpu6050.Init(GyroScale::GYRO_250DPS, AccelScale::ACCEL_2G);
 }
 
 void Main_Wrapper_Loop(){
