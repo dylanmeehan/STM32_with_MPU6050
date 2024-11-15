@@ -27,6 +27,21 @@ void Mpu6050::Init(GyroScale gyro_scale, AccelScale accel_scale){
   transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
                                          data, 2, HAL_MAX_DELAY);
 
+  // sample rate config
+  uint8_t sample_rate_register = 0x19;
+  uint8_t sample_rate_data = 31; // 8000 Hz / (1 + 31) = 250 Hz
+  uint8_t sample_rate_data_array[2] = {sample_rate_register, sample_rate_data};
+  transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+                                         sample_rate_data_array, 2, HAL_MAX_DELAY);
+
+  // set general config
+  uint8_t config_register = 0x1A;
+  uint8_t config_data = 0x00;
+  config_data |= 0x00; // 250 Hz
+  uint8_t config_data_array[2] = {config_register, config_data};
+  transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+                                         config_data_array, 2, HAL_MAX_DELAY);
+
   // set accel config
   uint8_t accel_config_register = 0x1C;
   uint8_t accel_config = 0x00;

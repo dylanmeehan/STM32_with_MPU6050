@@ -6,7 +6,7 @@ extern "C" {
 static Mpu6050 mpu6050;
 
 void Main_Wrapper_Init(){
-  mpu6050.Init(GyroScale::GYRO_250DPS, AccelScale::ACCEL_2G);
+  mpu6050.Init(GyroScale::GYRO_2000DPS, AccelScale::ACCEL_16G);
 }
 
 void Main_Wrapper_Loop(){
