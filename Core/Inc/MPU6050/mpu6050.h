@@ -20,17 +20,22 @@ class Mpu6050{
  public:
   Mpu6050();
   void Init(GyroScale gyro_scale, AccelScale accel_scale);
-  void Read();
+  void ReadIfReady();
+  void DataReadyCallback();
 
  private:
 
   void ReadAccel();
   void ReadGyro();
 
+  bool DataReadyInterrupt();
+
   GyroScale gyro_scale_ = GyroScale::GYRO_250DPS;
   AccelScale accel_scale_ = AccelScale::ACCEL_2G;
 
   static const uint8_t address = (0x68 << 1);
   static const int16_t range_Gs = 2;
+
+  bool is_data_ready_ = false;
 
 };

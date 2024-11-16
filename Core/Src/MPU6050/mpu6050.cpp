@@ -29,7 +29,7 @@ void Mpu6050::Init(GyroScale gyro_scale, AccelScale accel_scale){
 
   // sample rate config
   uint8_t sample_rate_register = 0x19;
-  uint8_t sample_rate_data = 31; // 8000 Hz / (1 + 31) = 250 Hz
+  uint8_t sample_rate_data =  800; //31; // 8000 Hz / (1 + 31) = 250 Hz
   uint8_t sample_rate_data_array[2] = {sample_rate_register, sample_rate_data};
   transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
                                          sample_rate_data_array, 2, HAL_MAX_DELAY);
@@ -58,6 +58,30 @@ void Mpu6050::Init(GyroScale gyro_scale, AccelScale accel_scale){
   transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
                                          gyro_data, 2, HAL_MAX_DELAY);
      
+  // set interrupt config
+  uint8_t int_pin_config_register = 0x37;
+  uint8_t int_pin_config = 0x00;
+  int_pin_config |= 0x1 << 7; // active low
+  int_pin_config |= 0x0 << 6; // push pull
+  int_pin_config |= 0x0 << 5; // don't latch
+  int_pin_config |= 0x1 << 4; // clear on any read
+  int_pin_config |= 0x0 << 3; // doesn't matter (FSYNC)
+  int_pin_config |= 0x0 << 2; // don't use FSYNC as int
+  int_pin_config |= 0x0 << 1; // don't access axillary I2C bus
+  uint8_t int_pin_data[2] = {int_pin_config_register, int_pin_config};
+  transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+                                         int_pin_data, 2, HAL_MAX_DELAY);
+
+  // int enable
+  uint8_t int_enable_register = 0x38;
+  uint8_t int_enable = 0x01; // YES data ready int
+  uint8_t int_enable_data[2] = {int_enable_register, int_enable};
+  transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+                                         int_enable_data, 2, HAL_MAX_DELAY);
+}
+
+void Mpu6050::DataReadyCallback(){
+  is_data_ready_ = true;
 }
 
 void Mpu6050::ReadAccel(){
@@ -85,6 +109,16 @@ void Mpu6050::ReadAccel(){
   HAL_UART_Transmit(&huart2, (uint8_t*)buffer, len,  HAL_MAX_DELAY);
 }
 
+bool Mpu6050::DataReadyInterrupt(){
+  uint8_t int_status_register = 0x3A;
+  uint8_t int_status_data;
+  HAL_StatusTypeDef transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+                                         &int_status_register, 1, HAL_MAX_DELAY);
+  HAL_StatusTypeDef read_status = HAL_I2C_Master_Receive(&hi2c1, Mpu6050::address,
+                                              &int_status_data, 1, HAL_MAX_DELAY);
+  return int_status_data & 0x01; // 1 if data ready, 0 if data has been read
+}
+
 void Mpu6050::ReadGyro(){
 
   uint8_t gyro_data[6];
@@ -110,7 +144,12 @@ void Mpu6050::ReadGyro(){
 
 }
 
-void Mpu6050::Read(){
-  ReadAccel();
-  ReadGyro();   
+void Mpu6050::ReadIfReady(){
+  if (is_data_ready_){
+    ReadAccel();
+    ReadGyro(); 
+    is_data_ready_ = false;
+  }  else{
+
+  }
 }
