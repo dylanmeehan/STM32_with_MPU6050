@@ -27,8 +27,9 @@ class Mpu6050{
 
   void ReadAccel();
   void ReadGyro();
+  void ResetI2C();
 
-  bool DataReadyInterrupt();
+  // bool DataReadyInterrupt();
 
   GyroScale gyro_scale_ = GyroScale::GYRO_250DPS;
   AccelScale accel_scale_ = AccelScale::ACCEL_2G;
@@ -36,6 +37,6 @@ class Mpu6050{
   static const uint8_t address = (0x68 << 1);
   static const int16_t range_Gs = 2;
 
-  bool is_data_ready_ = false;
+  volatile bool is_data_ready_ = false;
 
 };

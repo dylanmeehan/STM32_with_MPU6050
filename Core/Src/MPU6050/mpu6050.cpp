@@ -87,16 +87,17 @@ void Mpu6050::DataReadyCallback(){
 void Mpu6050::ReadAccel(){
   // read accels
   uint8_t accel_data_register = 0x3B;
-  HAL_StatusTypeDef transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
-                                         &accel_data_register, 1, HAL_MAX_DELAY);
+  uint8_t accel_data[6];
+    HAL_StatusTypeDef read_status = HAL_I2C_Mem_Read(&hi2c1, Mpu6050::address, 
+        accel_data_register, I2C_MEMADD_SIZE_8BIT, accel_data, 6, HAL_MAX_DELAY);
+  if (read_status != HAL_OK){
+    ResetI2C();
+  }
 
-  uint8_t raw_accel_data[6];
-  HAL_StatusTypeDef read_status = HAL_I2C_Master_Receive(&hi2c1, Mpu6050::address,
-                                              raw_accel_data, 6, HAL_MAX_DELAY);
 
-  int16_t raw_x_accel = raw_accel_data[0] << 8 | raw_accel_data[1];
-  int16_t raw_y_accel = raw_accel_data[2] << 8 | raw_accel_data[3];
-  int16_t raw_z_accel = raw_accel_data[4] << 8 | raw_accel_data[5];
+  int16_t raw_x_accel = accel_data[0] << 8 | accel_data[1];
+  int16_t raw_y_accel = accel_data[2] << 8 | accel_data[3];
+  int16_t raw_z_accel = accel_data[4] << 8 | accel_data[5];
 
   float max_reading = 2 << static_cast<int>(accel_scale_);
   float scale_factor = max_reading / 0x7FFF;
@@ -109,26 +110,25 @@ void Mpu6050::ReadAccel(){
   HAL_UART_Transmit(&huart2, (uint8_t*)buffer, len,  HAL_MAX_DELAY);
 }
 
-bool Mpu6050::DataReadyInterrupt(){
-  uint8_t int_status_register = 0x3A;
-  uint8_t int_status_data;
-  HAL_StatusTypeDef transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
-                                         &int_status_register, 1, HAL_MAX_DELAY);
-  HAL_StatusTypeDef read_status = HAL_I2C_Master_Receive(&hi2c1, Mpu6050::address,
-                                              &int_status_data, 1, HAL_MAX_DELAY);
-  return int_status_data & 0x01; // 1 if data ready, 0 if data has been read
-}
+// bool Mpu6050::DataReadyInterrupt(){
+//   uint8_t int_status_register = 0x3A;
+//   uint8_t int_status_data;
+//   HAL_StatusTypeDef transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
+//                                          &int_status_register, 1, HAL_MAX_DELAY);
+//   HAL_StatusTypeDef read_status = HAL_I2C_Master_Receive(&hi2c1, Mpu6050::address,
+//                                               &int_status_data, 1, HAL_MAX_DELAY);
+//   return int_status_data & 0x01; // 1 if data ready, 0 if data has been read
+// }
 
 void Mpu6050::ReadGyro(){
 
   uint8_t gyro_data[6];
-
   uint8_t gyro_data_register = 0x43;
-
-  HAL_StatusTypeDef transmit_status = HAL_I2C_Master_Transmit(&hi2c1, Mpu6050::address,
-                                         &gyro_data_register, 1, HAL_MAX_DELAY);
-  HAL_StatusTypeDef read_status = HAL_I2C_Master_Receive(&hi2c1, Mpu6050::address,
-                                              gyro_data, 6, HAL_MAX_DELAY);
+  HAL_StatusTypeDef read_status = HAL_I2C_Mem_Read(&hi2c1, Mpu6050::address, 
+        gyro_data_register, I2C_MEMADD_SIZE_8BIT, gyro_data, 6, HAL_MAX_DELAY);
+  if (read_status != HAL_OK){
+    ResetI2C();
+  }
 
   int16_t gyro_x_raw = gyro_data[0] << 8 | gyro_data[1];
   int16_t gyro_y_raw = gyro_data[2] << 8 | gyro_data[3];
@@ -152,4 +152,10 @@ void Mpu6050::ReadIfReady(){
   }  else{
 
   }
+}
+
+void Mpu6050::ResetI2C(){
+  HAL_I2C_DeInit(&hi2c1);
+  HAL_I2C_Init(&hi2c1);
+  Init(gyro_scale_, accel_scale_); // don't change these
 }
